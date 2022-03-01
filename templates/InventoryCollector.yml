@@ -37,6 +37,11 @@ Parameters:
     Default: cron(0 9,21 * * ? *)
     AllowedPattern: .+
 
+  EmailRecipient: 
+    Type: String
+    Default: replace-your-email@company.com
+    Description: To whome send an email with report.
+
 Resources:
 
   integratedinventorybucket:
@@ -101,7 +106,7 @@ Resources:
           'CROSS_ACCOUNT_ROLE_NAME': 'InventoryCollector-for-Lambda'
           'REPORT_TARGET_BUCKET_NAME': !Ref integratedinventorybucket
           'REPORT_TARGET_BUCKET_PATH': 'inventory-reports'
-          'RECIPIENT': 'replace-your-email@company.com'
+          'RECIPIENT': !Ref EmailRecipient
 
   ScheduleExpressiontoTriggerInventoryCollectorLambda:
     Type: AWS::Events::Rule
