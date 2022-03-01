@@ -2,6 +2,7 @@
 # License:
 # This sample code is made available under the MIT-0 license. See the LICENSE file.
 from inventory.readers import AwsConfigInventoryReader
+from inventory.reports import send_email_with_attachments
 from inventory.reports import CreateReportCommandHandler, DeliverReportCommandHandler
 
 def lambda_handler(event, context):
@@ -9,6 +10,7 @@ def lambda_handler(event, context):
 
     report_path = CreateReportCommandHandler().execute(inventory)
     report_url = DeliverReportCommandHandler().execute(report_path)
+    send_email_with_attachments(report_path)
 
     return {'statusCode': 200,
             'body': {
