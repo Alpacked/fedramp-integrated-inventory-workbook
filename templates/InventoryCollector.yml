@@ -101,6 +101,7 @@ Resources:
           'CROSS_ACCOUNT_ROLE_NAME': 'InventoryCollector-for-Lambda'
           'REPORT_TARGET_BUCKET_NAME': !Ref integratedinventorybucket
           'REPORT_TARGET_BUCKET_PATH': 'inventory-reports'
+          'RECIPIENT': 'replace-your-email@company.com'
 
   ScheduleExpressiontoTriggerInventoryCollectorLambda:
     Type: AWS::Events::Rule
