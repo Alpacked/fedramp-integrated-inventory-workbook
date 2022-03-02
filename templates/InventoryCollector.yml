@@ -47,6 +47,14 @@ Parameters:
     Default: ''
     Description: To whome send an email with a report.
 
+  EventRuleStatus: 
+    Type: String
+    Default: DISABLED
+    AllowedValues:
+      - ENABLED
+      - DISABLED
+    Description: Whether enable or not sending report by scheduler.
+
 Resources:
 
   integratedinventorybucket:
@@ -123,7 +131,7 @@ Resources:
       Description: CloudWatch Event Rule for triggering InventoryCollector Lambda
       Name: InventoryCollector-ScheduleExpression
       ScheduleExpression: !Ref ScheduleExpression
-      State: ENABLED
+      State: !Ref EventRuleStatus
       Targets: 
         - 
           Arn: 
