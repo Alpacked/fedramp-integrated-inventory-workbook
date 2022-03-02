@@ -81,6 +81,7 @@ class DeliverReportCommandHandler():
 
         return f"https://{target_bucket}.s3.amazonaws.com/{report_s3_key}"
 
+
 def send_email_with_attachment(file_path):
     # Amazon SES Documentation
     # https://docs.aws.amazon.com/ses/latest/dg/send-email-raw.html#send-email-raw-api
@@ -124,8 +125,8 @@ def send_email_with_attachment(file_path):
     # Create a multipart/mixed parent container.
     msg = MIMEMultipart('mixed')
     # Add subject, from and to lines.
-    msg['Subject'] = SUBJECT 
-    msg['From'] = SENDER 
+    msg['Subject'] = SUBJECT
+    msg['From'] = SENDER
     msg['To'] = RECIPIENT
 
     # Create a multipart/alternative child container.
@@ -145,7 +146,11 @@ def send_email_with_attachment(file_path):
 
     # Add a header to tell the email client to treat this part as an attachment,
     # and to give the attachment a name.
-    att.add_header('Content-Disposition','attachment',filename=os.path.basename(ATTACHMENT))
+    att.add_header(
+        'Content-Disposition',
+        'attachment',
+        filename=os.path.basename(ATTACHMENT)
+    )
 
     # Attach the multipart/alternative child container to the multipart/mixed
     # parent container.
@@ -153,20 +158,20 @@ def send_email_with_attachment(file_path):
 
     # Add the attachment to the parent container.
     msg.attach(att)
-    #print(msg)
+    # print(msg)
     try:
-    #Provide the contents of the email.
+        # Provide the contents of the email.
         response = client.send_raw_email(
             Source=SENDER,
             Destinations=[
                 RECIPIENT
             ],
             RawMessage={
-                'Data':msg.as_string(),
+                'Data': msg.as_string(),
             },
             # ConfigurationSetName=CONFIGURATION_SET
         )
-    # Display an error if something goes wrong.	
+    # Display an error if something goes wrong.
     except ClientError as e:
         print(e.response['Error']['Message'])
     else:
