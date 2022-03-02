@@ -47,7 +47,7 @@ Resources:
   integratedinventorybucket:
     Type: AWS::S3::Bucket
     Properties: 
-      BucketName: !Sub 'fedramp-integrated-inventory-reports-${AWS::AccountId}-${AWS::Region}' 
+      BucketName: !Sub 'fedramp-integrated-inventory-reports-${AWS::AccountId}' 
       VersioningConfiguration:
         Status: Enabled
       AccessControl: Private
