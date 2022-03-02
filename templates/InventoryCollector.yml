@@ -37,10 +37,15 @@ Parameters:
     Default: cron(0 9,21 * * ? *)
     AllowedPattern: .+
 
+  EmailSender: 
+    Type: String
+    Default: ''
+    Description: Who sends an email with a report.
+
   EmailRecipient: 
     Type: String
     Default: ''
-    Description: To whome send an email with report.
+    Description: To whome send an email with a report.
 
 Resources:
 
@@ -106,6 +111,7 @@ Resources:
           'CROSS_ACCOUNT_ROLE_NAME': 'InventoryCollector-for-Lambda'
           'REPORT_TARGET_BUCKET_NAME': !Ref integratedinventorybucket
           'REPORT_TARGET_BUCKET_PATH': 'inventory-reports'
+          'SENDER': !Ref EmailSender
           'RECIPIENT': !Ref EmailRecipient
           'CONFIGURATION_AGGREGATOR_NAME': !Ref MultiRegionAggregator
 
