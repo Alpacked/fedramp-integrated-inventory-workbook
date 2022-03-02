@@ -39,7 +39,7 @@ Parameters:
 
   EmailRecipient: 
     Type: String
-    Default: replace-your-email@company.com
+    Default: ''
     Description: To whome send an email with report.
 
 Resources:
