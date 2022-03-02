@@ -107,6 +107,7 @@ Resources:
           'REPORT_TARGET_BUCKET_NAME': !Ref integratedinventorybucket
           'REPORT_TARGET_BUCKET_PATH': 'inventory-reports'
           'RECIPIENT': !Ref EmailRecipient
+          'CONFIGURATION_AGGREGATOR_NAME': !Ref MultiRegionAggregator
 
   ScheduleExpressiontoTriggerInventoryCollectorLambda:
     Type: AWS::Events::Rule
@@ -137,3 +138,11 @@ Resources:
           - "ScheduleExpressiontoTriggerInventoryCollectorLambda"
           - "Arn"
 
+  MultiRegionAggregator:
+    Type: AWS::Config::ConfigurationAggregator
+    Properties: 
+      AccountAggregationSources: 
+        - AccountIds:
+          - !Ref AWS::AccountId
+          AllAwsRegions: true
+      ConfigurationAggregatorName: MultiRegionAggregator

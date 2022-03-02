@@ -37,11 +37,24 @@ class AwsConfigInventoryReader():
 
             next_token: str = ''
             while True:
-                resources_result = config_client.select_resource_config(Expression="SELECT arn, resourceType, configuration, tags "
-                                                                                   "WHERE resourceType IN ('AWS::EC2::Instance', 'AWS::ElasticLoadBalancingV2::LoadBalancer', "
-                                                                                       "'AWS::ElasticLoadBalancing::LoadBalancer', 'AWS::DynamoDB::Table', 'AWS::RDS::DBInstance')",
-                                                                        NextToken=next_token)
-                
+                expression = '''
+                SELECT arn, resourceType, configuration, tags
+                WHERE resourceType IN ('AWS::EC2::Instance', 'AWS::ElasticLoadBalancingV2::LoadBalancer', 
+                'AWS::ElasticLoadBalancing::LoadBalancer', 'AWS::DynamoDB::Table', 'AWS::RDS::DBInstance')
+                '''
+                configuration_aggregator_name = os.environ["CONFIGURATION_AGGREGATOR_NAME"]
+                if not next_token:
+                    resources_result = config_client.select_aggregate_resource_config(
+                        Expression=expression,
+                        ConfigurationAggregatorName=configuration_aggregator_name,
+                    )
+                else:
+                    resources_result = config_client.select_aggregate_resource_config(
+                        Expression=expression,
+                        ConfigurationAggregatorName=configuration_aggregator_name,
+                        NextToken=next_token
+                    )
+
                 next_token = resources_result.get('NextToken', '')
                 results: List[str] = resources_result.get('Results', [])
 
