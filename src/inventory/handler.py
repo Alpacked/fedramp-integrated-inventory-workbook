@@ -1,6 +1,8 @@
 # (c) 2019 Amazon Web Services, Inc. or its affiliates. All Rights Reserved.
 # License:
 # This sample code is made available under the MIT-0 license. See the LICENSE file.
+import os
+
 from inventory.readers import AwsConfigInventoryReader
 from inventory.reports import send_email_with_attachment
 from inventory.reports import CreateReportCommandHandler, DeliverReportCommandHandler
@@ -10,7 +12,10 @@ def lambda_handler(event, context):
 
     report_path = CreateReportCommandHandler().execute(inventory)
     report_url = DeliverReportCommandHandler().execute(report_path)
-    send_email_with_attachment(report_path)
+
+    # Won't be executed if RECIPIENT or SENDER empty
+    if os.environ.get("RECIPIENT") and os.environ.get("SENDER"):
+        send_email_with_attachment(report_path)
 
     return {'statusCode': 200,
             'body': {

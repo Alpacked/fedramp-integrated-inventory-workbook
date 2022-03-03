@@ -7,7 +7,6 @@ from pathlib import PurePath
 import os, os.path
 from typing import List
 import boto3
-import json
 from openpyxl import load_workbook
 from openpyxl.worksheet.worksheet import Worksheet
 from inventory.mappers import InventoryData
@@ -85,11 +84,6 @@ class DeliverReportCommandHandler():
 
 
 def send_email_with_attachment(file_path):
-    # Won't be executed if RECIPIENT or SENDER empty
-    if not os.environ.get("RECIPIENT") or not os.environ.get("SENDER"):
-        _logger.info(f"No email source or target. Skip")
-        return 0
-
     # Amazon SES Documentation
     # https://docs.aws.amazon.com/ses/latest/dg/send-email-raw.html#send-email-raw-api
 
