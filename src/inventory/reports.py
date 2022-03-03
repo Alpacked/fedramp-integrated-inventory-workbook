@@ -100,11 +100,11 @@ def send_email_with_attachment(file_path):
     RECIPIENT = to_email
 
     # The subject line for the email.
-    SUBJECT = "FedRamp Inventory from GovCloud"
+    SUBJECT = "FedRamp Inventory"
     # The full path to the file that will be attached to the email.
     ATTACHMENT = file_path
     # The email body for recipients with non-HTML email clients.
-    DEFAULT_MESSAGE = "Please see the attached file for a FedRamp inventory report from GovCloud."
+    DEFAULT_MESSAGE = "Please see the attached file for a FedRamp inventory report."
     BODY_TEXT = os.environ.get(
         "BODY_TEXT",
         f"Hello,\r\n{DEFAULT_MESSAGE}"
