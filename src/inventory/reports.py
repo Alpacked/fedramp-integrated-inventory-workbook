@@ -79,7 +79,9 @@ class DeliverReportCommandHandler():
 
         _logger.info(f"completed file upload")
 
-        return f"https://{target_bucket}.s3.amazonaws.com/{report_s3_key}"
+        target_bucket_location = self._s3_client.get_bucket_location(Bucket=target_bucket)['LocationConstraint']
+
+        return f"https://s3-{target_bucket_location}.amazonaws.com/{target_bucket}/{report_s3_key}"
 
 
 def send_email_with_attachment(file_path):
