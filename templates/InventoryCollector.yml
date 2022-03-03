@@ -40,12 +40,12 @@ Parameters:
   EmailSender: 
     Type: String
     Default: ''
-    Description: Who sends an email with a report.
+    Description:  The email address of sender to send a report from.
 
   EmailRecipient: 
     Type: String
     Default: ''
-    Description: To whome send an email with a report.
+    Description: The email address of recipient to send a report to.
 
   EventRuleStatus: 
     Type: String
