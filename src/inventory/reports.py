@@ -174,7 +174,6 @@ def send_email_with_attachment(file_path):
         )
     # Display an error if something goes wrong.
     except ClientError as e:
-        print(e.response['Error']['Message'])
+        _logger.error(e.response['Error']['Message'])
     else:
-        print("Email sent! Message ID:"),
-        print(response['MessageId'])
+        _logger.info(f"Email sent! Message ID: {response['MessageId']}")
