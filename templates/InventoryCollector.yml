@@ -31,18 +31,41 @@ Parameters:
     Default: fedramp-inventory-lambda.zip 
     Description: Enter the filename.  
 
+  ParserPayload: 
+    Type: String
+    Default: fedramp-parser-lambda.zip 
+    Description: Enter the filename.  
+
   ScheduleExpression:
     Description: Cron expression that determines when and how often the rule runs. For example, an expression like - 0 15 * * ? * will trigger this rule at 8AM PST everyday of the month.
     Type: String
     Default: cron(0 9,21 * * ? *)
     AllowedPattern: .+
 
+  EmailSender: 
+    Type: String
+    Default: ''
+    Description:  The email address of sender to send a report from.
+
+  EmailRecipient: 
+    Type: String
+    Default: ''
+    Description: The email address of recipient to send a report to.
+
+  EventRuleStatus: 
+    Type: String
+    Default: DISABLED
+    AllowedValues:
+      - ENABLED
+      - DISABLED
+    Description: Whether enable or not sending report by scheduler.
+
 Resources:
 
   integratedinventorybucket:
     Type: AWS::S3::Bucket
     Properties: 
-      BucketName: !Sub 'integrated-inventory-reports-${AWS::AccountId}' 
+      BucketName: !Sub 'fedramp-integrated-inventory-reports-${AWS::AccountId}' 
       VersioningConfiguration:
         Status: Enabled
       AccessControl: Private
@@ -101,6 +124,9 @@ Resources:
           'CROSS_ACCOUNT_ROLE_NAME': 'InventoryCollector-for-Lambda'
           'REPORT_TARGET_BUCKET_NAME': !Ref integratedinventorybucket
           'REPORT_TARGET_BUCKET_PATH': 'inventory-reports'
+          'SENDER': !Ref EmailSender
+          'RECIPIENT': !Ref EmailRecipient
+          'CONFIGURATION_AGGREGATOR_NAME': !Ref MultiRegionAggregator
 
   ScheduleExpressiontoTriggerInventoryCollectorLambda:
     Type: AWS::Events::Rule
@@ -110,7 +136,7 @@ Resources:
       Description: CloudWatch Event Rule for triggering InventoryCollector Lambda
       Name: InventoryCollector-ScheduleExpression
       ScheduleExpression: !Ref ScheduleExpression
-      State: ENABLED
+      State: !Ref EventRuleStatus
       Targets: 
         - 
           Arn: 
@@ -131,3 +157,94 @@ Resources:
           - "ScheduleExpressiontoTriggerInventoryCollectorLambda"
           - "Arn"
 
+  MultiRegionAggregator:
+    Type: AWS::Config::ConfigurationAggregator
+    Properties: 
+      AccountAggregationSources: 
+        - AccountIds:
+          - !Ref AWS::AccountId
+          AllAwsRegions: true
+      ConfigurationAggregatorName: MultiRegionAggregator
+
+  # Permission for Amazon Config
+  ConfigPermissionToCallLambda:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt CustomOnChangeParserLambda.Arn
+      Action: "lambda:InvokeFunction"
+      Principal: "config.amazonaws.com"
+      SourceAccount: !Ref "AWS::AccountId"
+
+  # Permission to invoke Lambda by another Lambda
+  LambdaPermissionToCallInventoryCollectorLambda:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt InventoryCollectorLambda.Arn
+      Action: lambda:InvokeFunction
+      Principal: lambda.amazonaws.com
+      SourceAccount: !Ref "AWS::AccountId"
+      SourceArn: !GetAtt CustomOnChangeParserLambda.Arn
+
+  CustomOnChangeParserLambdaExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: CustomOnChangeParserLambdaExecutionRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          Effect: "Allow"
+          Principal:
+            Service:
+              - "lambda.amazonaws.com"
+            AWS:
+              - !Ref AWS::AccountId
+          Action:
+            - "sts:AssumeRole"
+      Path: "/"
+      ManagedPolicyArns:
+        - arn:aws-us-gov:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: LambdaInvoke
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "lambda:InvokeFunction"
+                  - "lambda:InvokeAsync"
+                Resource: !GetAtt InventoryCollectorLambda.Arn
+
+  CustomOnChangeParserLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: CustomOnChangeParserLambda
+      Code:
+        S3Bucket: !Ref LambdaPayloadLocation
+        S3Key: !Ref ParserPayload
+      Handler: "parser.handler.lambda_handler"
+      Runtime: "python3.8"
+      Timeout: 10
+      Role: !GetAtt CustomOnChangeParserLambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          'INVENTORY_FUNCTION_NAME': !Ref InventoryCollectorLambda
+
+  UpdateFedRampInventoryReportOnChange:
+    Type: AWS::Config::ConfigRule
+    Properties:
+      ConfigRuleName: UpdateFedRampInventoryReportOnChange
+      Description: The Rule will trigger the lambda function to recreate/resend the FedRamp Inventory report each time target resources will be changed.
+      Scope:
+        ComplianceResourceTypes:
+          - "AWS::EC2::Instance"
+          - "AWS::ElasticLoadBalancingV2::LoadBalancer"
+          - "AWS::ElasticLoadBalancing::LoadBalancer"
+          - "AWS::DynamoDB::Table"
+          - "AWS::RDS::DBInstance"
+      Source:
+        Owner: CUSTOM_LAMBDA
+        SourceDetails:
+          - EventSource: aws.config
+            MessageType: ConfigurationItemChangeNotification
+        SourceIdentifier: !GetAtt CustomOnChangeParserLambda.Arn
+    DependsOn: ConfigPermissionToCallLambda

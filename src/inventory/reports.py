@@ -11,6 +11,11 @@ from openpyxl import load_workbook
 from openpyxl.worksheet.worksheet import Worksheet
 from inventory.mappers import InventoryData
 
+from botocore.exceptions import ClientError
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
+
 _logger = logging.getLogger("inventory.reports")
 _logger.setLevel(os.environ.get("LOG_LEVEL", logging.INFO))
 _current_dir_name = os.path.dirname(__file__)
@@ -73,4 +78,102 @@ class DeliverReportCommandHandler():
 
         _logger.info(f"completed file upload")
 
-        return f"https://{target_bucket}.s3.amazonaws.com/{report_s3_key}"
+        target_bucket_location = self._s3_client.get_bucket_location(Bucket=target_bucket)['LocationConstraint']
+
+        return f"https://s3-{target_bucket_location}.amazonaws.com/{target_bucket}/{report_s3_key}"
+
+
+def send_email_with_attachment(file_path):
+    # Amazon SES Documentation
+    # https://docs.aws.amazon.com/ses/latest/dg/send-email-raw.html#send-email-raw-api
+
+    from_email = os.environ.get("SENDER")
+    from_email_friendly_name = os.environ.get(
+        "SENDER_FRIENDLY_NAME", 'SRE Reports')
+    to_email = os.environ.get("RECIPIENT")
+
+    SENDER = f"{from_email_friendly_name} <{from_email}>"
+    RECIPIENT = to_email
+
+    # The subject line for the email.
+    SUBJECT = "FedRamp Inventory"
+    # The full path to the file that will be attached to the email.
+    ATTACHMENT = file_path
+    # The email body for recipients with non-HTML email clients.
+    DEFAULT_MESSAGE = "Please see the attached file for a FedRamp inventory report."
+    BODY_TEXT = os.environ.get(
+        "BODY_TEXT",
+        f"Hello,\r\n{DEFAULT_MESSAGE}"
+    )
+
+    # The HTML body of the email.
+    BODY_HTML = os.environ.get("BODY_HTML", f"""\
+    <html>
+    <head></head>
+    <body>
+    <h1>Hello!</h1>
+    <p>{os.environ.get('BODY_HTML', DEFAULT_MESSAGE)}</p>
+    </body>
+    </html>
+    """)
+
+    # The character encoding for the email.
+    CHARSET = "utf-8"
+
+    # Create a new SES resource and specify a region.
+    client = boto3.client('ses')
+
+    # Create a multipart/mixed parent container.
+    msg = MIMEMultipart('mixed')
+    # Add subject, from and to lines.
+    msg['Subject'] = SUBJECT
+    msg['From'] = SENDER
+    msg['To'] = RECIPIENT
+
+    # Create a multipart/alternative child container.
+    msg_body = MIMEMultipart('alternative')
+
+    # Encode the text and HTML content and set the character encoding. This step is
+    # necessary if you're sending a message with characters outside the ASCII range.
+    textpart = MIMEText(BODY_TEXT.encode(CHARSET), 'plain', CHARSET)
+    htmlpart = MIMEText(BODY_HTML.encode(CHARSET), 'html', CHARSET)
+
+    # Add the text and HTML parts to the child container.
+    msg_body.attach(textpart)
+    msg_body.attach(htmlpart)
+
+    # Define the attachment part and encode it using MIMEApplication.
+    att = MIMEApplication(open(ATTACHMENT, 'rb').read())
+
+    # Add a header to tell the email client to treat this part as an attachment,
+    # and to give the attachment a name.
+    att.add_header(
+        'Content-Disposition',
+        'attachment',
+        filename=os.path.basename(ATTACHMENT)
+    )
+
+    # Attach the multipart/alternative child container to the multipart/mixed
+    # parent container.
+    msg.attach(msg_body)
+
+    # Add the attachment to the parent container.
+    msg.attach(att)
+    # print(msg)
+    try:
+        # Provide the contents of the email.
+        response = client.send_raw_email(
+            Source=SENDER,
+            Destinations=[
+                RECIPIENT
+            ],
+            RawMessage={
+                'Data': msg.as_string(),
+            },
+            # ConfigurationSetName=CONFIGURATION_SET
+        )
+    # Display an error if something goes wrong.
+    except ClientError as e:
+        _logger.error(e.response['Error']['Message'])
+    else:
+        _logger.info(f"Email sent! Message ID: {response['MessageId']}")
