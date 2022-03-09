@@ -21,7 +21,18 @@ def lambda_handler(event, context):
         if diff['configurationItemDiff']:
             for k,v in diff['configurationItemDiff']['changedProperties'].items():
                 if 'BlockDeviceMappings' in k:
-                    _logger.info(f'The EBS update was marked as spam. Skip execution.')
+                    _logger.info(f'The EBS attaching was marked as spam. Skip execution.')
+                elif 'Relationships' in k:
+                    try:
+                        if v['previousValue']['resourceType'] == "AWS::EC2::Volume":
+                            _logger.info(f'The EBS updating was marked as spam. Skip execution.')
+                    except TypeError:
+                        pass
+                    try:
+                        if v['updatedValue']['resourceType'] == "AWS::EC2::Volume":
+                            _logger.info(f'The EBS updating was marked as spam. Skip execution.')
+                    except TypeError:
+                        pass
                 else:
                     trigger_lambda = True
             if trigger_lambda:
