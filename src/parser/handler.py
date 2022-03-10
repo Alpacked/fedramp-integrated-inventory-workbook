@@ -19,9 +19,10 @@ def lambda_handler(event, context):
     else:
         diff = json.loads(event['invokingEvent'])
         if diff['configurationItemDiff']:
-            for k,v in diff['configurationItemDiff']['changedProperties'].items():
+            for k, v in diff['configurationItemDiff']['changedProperties'].items():
                 if 'BlockDeviceMappings' in k:
-                    _logger.info(f'The EBS attaching was marked as spam. Skip execution.')
+                    _logger.info(
+                        f'The EBS attaching was marked as spam. Skipped.')
                 elif 'Relationships' in k:
                     try:
                         if v['previousValue']['resourceType'] == "AWS::EC2::Volume":
@@ -36,7 +37,8 @@ def lambda_handler(event, context):
                 else:
                     trigger_lambda = True
             if trigger_lambda:
-                _logger.info(f'Triggering {os.environ.get("INVENTORY_FUNCTION_NAME")} lambda')
+                _logger.info(
+                    f'Triggering {os.environ.get("INVENTORY_FUNCTION_NAME")} lambda')
                 response = client.invoke(
                     FunctionName=os.environ.get('INVENTORY_FUNCTION_NAME'),
                     InvocationType='Event',
@@ -45,7 +47,7 @@ def lambda_handler(event, context):
                 )
 
                 status_code = response['StatusCode']
-                
+
         else:
             _logger.info('No "configurationItemDiff". Skip execution.')
 
