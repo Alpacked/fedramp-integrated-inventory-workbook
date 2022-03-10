@@ -65,21 +65,46 @@ def skip_changes(changed_property, ignore_aws_resource_list):
 
     return status_skipping
 
+
 def lambda_handler(event, context):
+    '''
+    The lambda function triggers INVENTORY_FUNCTION lambda
+    based on the parsing rules.
+    '''
     _logger.info(event)
     status_code = ''
     trigger_lambda = False
 
     if not event['invokingEvent']:
+        '''
+        The input event may not have any invokingEvent.
+        Skip such messsages.
+        '''
         _logger.info('No "invokingEvent". Skip execution.')
     else:
         diff = json.loads(event['invokingEvent'])
         if diff['configurationItemDiff']:
+            '''
+            Skip the input event without difference in the configuration
+            of the resources. E.g. it can parse any input events related
+            to simple updating of DynamoDB item.
+            '''
             for k, v in diff['configurationItemDiff']['changedProperties'].items():
                 if 'BlockDeviceMappings' in k:
+                    '''
+                    Skip the input event with a simple attaching/detaching
+                    EBS volume action.
+                    '''
                     _logger.info(
                         f'The EBS attaching was marked as spam. Skipped.')
                 elif 'Relationships' in k:
+                    '''
+                    Skip resources defined in `ignore_aws_resource_list` attribute
+                    of `skip_changes` funtion.
+                    Explanation of using 'not' operator:
+                        The `skip_changes` function returns True if resource
+                        should be skipped. Thats means lambda should NOT be triggered.
+                    '''
                     trigger_lambda = not skip_changes(v, ["AWS::EC2::Volume"])
                 else:
                     trigger_lambda = True
