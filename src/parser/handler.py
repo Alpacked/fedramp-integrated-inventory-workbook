@@ -106,6 +106,11 @@ def lambda_handler(event, context):
                         should be skipped. Thats means lambda should NOT be triggered.
                     '''
                     trigger_lambda = not skip_changes(v, ["AWS::EC2::Volume"])
+                elif 'Configuration.LatestRestorableTime' in k:
+                    _logger.info('''
+                        Skip the regular update of "LatestRestorableTime" parameter of
+                        RDS instance.
+                    ''')
                 else:
                     trigger_lambda = True
             if trigger_lambda:
