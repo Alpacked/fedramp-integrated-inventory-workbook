@@ -91,12 +91,9 @@ def lambda_handler(event, context):
             '''
             for k, v in diff['configurationItemDiff']['changedProperties'].items():
                 if 'BlockDeviceMappings' in k:
-                    '''
-                    Skip the input event with a simple attaching/detaching
-                    EBS volume action.
-                    '''
-                    _logger.info(
-                        f'The EBS attaching was marked as spam. Skipped.')
+                    _logger.info('''
+                        Skip the attaching/detaching EBS volume action.
+                    ''')
                 elif 'Relationships' in k:
                     '''
                     Skip resources defined in `ignore_aws_resource_list` attribute
