@@ -100,8 +100,8 @@ def lambda_handler(event, context):
                 elif 'Relationships' in k:
                     '''
                     Skip resources defined in `ignore_aws_resource_list` attribute
-                    of `skip_changes` funtion.
-                    Explanation of using 'not' operator:
+                    of `skip_changes` function.
+                    Explanation for using 'not' operator:
                         The `skip_changes` function returns True if resource
                         should be skipped. Thats means lambda should NOT be triggered.
                     '''
